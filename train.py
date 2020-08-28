@@ -14,43 +14,49 @@ from options import create_options
 from tqdm import tqdm
 
 print(torch.__version__)
+
+
 def get_alpha(epoch):
     # WARNING: Does not support alpha value saving when continuning training from a saved model
     if opts.anneal_alpha == "none":
         alpha = opts.alpha
     if opts.anneal_alpha == "1":
-        alpha = opts.alpha * float(np.tanh(epoch/DEFAULT_ANNEAL_TEMPERATURE - np.pi) + 1) / 2
+        alpha = opts.alpha * float(np.tanh(epoch / DEFAULT_ANNEAL_TEMPERATURE - np.pi) + 1) / 2
     if opts.anneal_alpha == "2":
-        alpha = opts.alpha * float(np.tanh(epoch/(2 * DEFAULT_ANNEAL_TEMPERATURE)))
+        alpha = opts.alpha * float(np.tanh(epoch / (2 * DEFAULT_ANNEAL_TEMPERATURE)))
     return alpha
 
-def onehot(tensor, num_classes=10):
-    return torch.eye(num_classes).cuda().index_select(dim=0, index=tensor) # One-hot encode 
 
-def transform_data(data,target,use_gpu, num_classes=10):
+def onehot(tensor, num_classes=10):
+    return torch.eye(num_classes).cuda().index_select(dim=0, index=tensor)  # One-hot encode
+
+
+def transform_data(data, target, use_gpu, num_classes=10):
     data, target = Variable(data), Variable(target)
     if use_gpu:
         data, target = data.cuda(), target.cuda()
     target = onehot(target, num_classes=num_classes)
     return data, target
 
+
 class GPUParallell(nn.DataParallel):
-  
-  def __init__(self, capsnet, device_ids):
-    super(Test, self).__init__(capsnet, device_ids=device_ids)
-    self.capsnet = capsnet
-    self.num_classes = capsnet.num_classes
-    
-  def loss(self, images,labels, capsule_output,  reconstruction): 
-    return self.capsnet.loss(images, labels, capsule_output, reconstruction)
-  
-  def forward(self, x, target=None):
-    return self.capsnet(x, target)
+
+    def __init__(self, capsnet, device_ids):
+        super(Test, self).__init__(capsnet, device_ids=device_ids)
+        self.capsnet = capsnet
+        self.num_classes = capsnet.num_classes
+
+    def loss(self, images, labels, capsule_output, reconstruction):
+        return self.capsnet.loss(images, labels, capsule_output, reconstruction)
+
+    def forward(self, x, target=None):
+        return self.capsnet(x, target)
+
 
 def get_network(opts):
     if opts.dataset == "mnist":
         capsnet = CapsNet(reconstruction_type=opts.decoder,
-                          routing_iterations = opts.routing_iterations,
+                          routing_iterations=opts.routing_iterations,
                           batchnorm=opts.batch_norm,
                           loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
@@ -60,20 +66,20 @@ def get_network(opts):
         capsnet = CapsNet(reconstruction_type=opts.decoder,
                           imsize=32,
                           num_classes=5,
-                          routing_iterations = opts.routing_iterations, 
+                          routing_iterations=opts.routing_iterations,
                           primary_caps_gridsize=8,
                           num_primary_capsules=32,
                           batchnorm=opts.batch_norm,
-                          loss = opts.loss_type,
+                          loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
     if opts.dataset == "cifar10":
         if opts.decoder == "Conv":
             opts.decoder = "Conv32"
         capsnet = CapsNet(reconstruction_type=opts.decoder,
-                          imsize=32, 
-                          routing_iterations = opts.routing_iterations,
+                          imsize=32,
+                          routing_iterations=opts.routing_iterations,
                           primary_caps_gridsize=8,
-                          img_channels=3, 
+                          img_channels=3,
                           batchnorm=opts.batch_norm,
                           num_primary_capsules=32,
                           loss=opts.loss_type,
@@ -85,7 +91,8 @@ def get_network(opts):
         print("Training on GPU IDS:", opts.gpu_ids)
     return capsnet
 
-def load_model(opts, capsnet): 
+
+def load_model(opts, capsnet):
     model_path = path.join(SAVE_DIR, opts.filepath)
     if path.isfile(model_path):
         print("Saved model found")
@@ -93,7 +100,7 @@ def load_model(opts, capsnet):
     else:
         print("Saved model not found; Model initialized.")
         initialize_weights(capsnet)
-    
+
 
 def get_dataset(opts):
     if opts.dataset == 'mnist':
@@ -103,7 +110,7 @@ def get_dataset(opts):
     if opts.dataset == 'cifar10':
         return load_cifar10(opts.batch_size)
     raise ValueError("Dataset not supported:" + opts.dataset)
-    
+
 
 def main(opts):
     capsnet = get_network(opts)
@@ -115,10 +122,10 @@ def main(opts):
 
     train_loader, valid_loader, test_loader = get_dataset(opts)
     stats = Statistics(LOG_DIR, opts.model)
-    
+
     for epoch in range(opts.epochs):
         capsnet.train()
-        
+
         # Annealing alpha
         alpha = get_alpha(epoch)
 
@@ -132,9 +139,10 @@ def main(opts):
             loss, rec_loss, marg_loss = capsnet.loss(data, target, capsule_output, reconstructions, alpha)
             loss.backward()
             optimizer.step()
-            
-            stats.track_train(loss.data.detach().item(), rec_loss.detach().item(), marg_loss.detach().item(), target.detach(), predictions.detach())
-        
+
+            stats.track_train(loss.data.detach().item(), rec_loss.detach().item(), marg_loss.detach().item(),
+                              target.detach(), predictions.detach())
+
         """Evaluate on test set"""
         capsnet.eval()
         for batch_id, (data, target) in tqdm(list(enumerate(test_loader)), ascii=True, desc="Test {:3d}".format(epoch)):
@@ -144,8 +152,8 @@ def main(opts):
             data = denormalize(data)
             loss, rec_loss, marg_loss = capsnet.loss(data, target, capsule_output, reconstructions, alpha)
 
-
-            stats.track_test(loss.data.detach().item(),rec_loss.detach().item(), marg_loss.detach().item(), target.detach(), predictions.detach())
+            stats.track_test(loss.data.detach().item(), rec_loss.detach().item(), marg_loss.detach().item(),
+                             target.detach(), predictions.detach())
 
         stats.save_stats(epoch)
 

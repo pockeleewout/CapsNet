@@ -9,3 +9,9 @@ options/
 logs_old/
 .vscode
 data/
+
+# IntelliJ editors
+.idea/
+
+# Python packages
+*.whl

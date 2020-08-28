@@ -295,7 +295,6 @@ class SmallNORB(data.Dataset):
             right_samples = np.zeros(shape=(num_samples, height, width), dtype=np.uint8)
 
             for i in range(num_samples):
-
                 # left and right images stored in pairs, left first
                 left_samples[i, :, :] = self._read_image(f, height, width)
                 right_samples[i, :, :] = self._read_image(f, height, width)
