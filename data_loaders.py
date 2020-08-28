@@ -60,7 +60,7 @@ def load_mnist(batch_size, valid_size=0.1):
     return build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
 
 
-def load_small_norb(batch_size):
+def load_small_norb(batch_size, valid_size=0.1):
     path = SMALL_NORB_PATH
     train_transform = transforms.Compose([
         transforms.Resize(48),
