@@ -6,7 +6,7 @@ from constants import *
 from smallNorb import SmallNORB
 
 
-def build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset):
+def build_data_loaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset):
     # Compute validation split
     train_size = len(train_dataset)
     indices = list(range(train_size))
@@ -16,7 +16,7 @@ def build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test
     train_sampler = SubsetRandomSampler(train_idx)
     valid_sampler = SubsetRandomSampler(valid_idx)
 
-    # Create dataloaders
+    # Create data loaders
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
                                                sampler=train_sampler)
@@ -57,10 +57,10 @@ def load_mnist(batch_size, valid_size=0.1):
                                   download=True,
                                   transform=test_transform)
 
-    return build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
+    return build_data_loaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
 
 
-def load_small_norb(batch_size, valid_size=0.1):
+def load_smallnorb(batch_size, valid_size=0.1):
     path = SMALL_NORB_PATH
     train_transform = transforms.Compose([
         transforms.Resize(48),
@@ -86,7 +86,7 @@ def load_small_norb(batch_size, valid_size=0.1):
     valid_dataset = SmallNORB(path, train=True, download=True, transform=valid_transform)
     test_dataset = SmallNORB(path, train=False, transform=test_transform)
 
-    return build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
+    return build_data_loaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
 
 
 def load_cifar10(batch_size, valid_size=0.1):
@@ -117,4 +117,14 @@ def load_cifar10(batch_size, valid_size=0.1):
                                     download=True,
                                     transform=test_transform)
 
-    return build_dataloaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
+    return build_data_loaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)
+
+
+def load_trashnet(batch_size, valid_size=0.1):
+    transform = transforms.Resize((64, 64))
+
+    train_dataset = datasets.ImageFolder("../trashnet/augmented/", transform=transform)
+    valid_dataset = datasets.ImageFolder("../trashnet/dataset-resized/", transform=transform)
+    test_dataset = datasets.ImageFolder("../trashnet/augmented/", transform=transform)
+
+    return build_data_loaders(batch_size, valid_size, train_dataset, valid_dataset, test_dataset)

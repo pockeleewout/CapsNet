@@ -142,11 +142,11 @@ class SmallNORB(data.Dataset):
             mode ``stereo'':
                 tuple: (image left, image right, target, info)
         """
-        target = self.labels[index % 24300] if self.mode is "all" else self.labels[index]
+        target = self.labels[index % 24300] if self.mode == "all" else self.labels[index]
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        info = self.infos[index % 24300] if self.mode is "all" else self.infos[index]
+        info = self.infos[index % 24300] if self.mode == "all" else self.infos[index]
         if self.info_transform is not None:
             info = self.info_transform(info)
 
@@ -187,8 +187,8 @@ class SmallNORB(data.Dataset):
             self.test_label_file,
             self.train_label_file
         )
-        fpaths = [os.path.exists(os.path.join(self.root, self.processed_folder, f + self.extension)) for f in files]
-        return False not in fpaths
+        file_paths = [os.path.exists(os.path.join(self.root, self.processed_folder, f + self.extension)) for f in files]
+        return False not in file_paths
 
     def _flat_data_files(self):
         return [j for i in self.data_files.values() for j in list(i.values())]
@@ -199,8 +199,8 @@ class SmallNORB(data.Dataset):
         for file_dict in self._flat_data_files():
             filename = file_dict["name"]
             md5 = file_dict["md5"]
-            fpath = os.path.join(root, self.raw_folder, filename)
-            if not check_integrity(fpath, md5):
+            file_path = os.path.join(root, self.raw_folder, filename)
+            if not check_integrity(file_path, md5):
                 return False
         return True
 
@@ -221,19 +221,19 @@ class SmallNORB(data.Dataset):
                 filename = file_dict["name"]
                 gz_filename = filename + '.gz'
                 md5 = file_dict["md5_gz"]
-                fpath = os.path.join(self.root, self.raw_folder, filename)
-                gz_fpath = fpath + '.gz'
+                file_path = os.path.join(self.root, self.raw_folder, filename)
+                gz_file_path = file_path + '.gz'
 
                 # download if compressed file not exists and verified
                 download_url(url, os.path.join(self.root, self.raw_folder), gz_filename, md5)
 
                 print('# Extracting data {}\n'.format(filename))
 
-                with open(fpath, 'wb') as out_f, \
-                        gzip.GzipFile(gz_fpath) as zip_f:
+                with open(file_path, 'wb') as out_f, \
+                        gzip.GzipFile(gz_file_path) as zip_f:
                     out_f.write(zip_f.read())
 
-                os.unlink(gz_fpath)
+                os.unlink(gz_file_path)
 
         # process and save as torch files
         print('Processing...')
@@ -285,8 +285,8 @@ class SmallNORB(data.Dataset):
         return dimensions
 
     def _read_image_file(self, file_name):
-        fpath = os.path.join(self.root, self.raw_folder, file_name)
-        with open(fpath, mode='rb') as f:
+        file_path = os.path.join(self.root, self.raw_folder, file_name)
+        with open(file_path, mode='rb') as f:
             dimensions = self._parse_header(f)
             assert dimensions == [24300, 2, 96, 96]
             num_samples, _, height, width = dimensions
@@ -309,8 +309,8 @@ class SmallNORB(data.Dataset):
         return image
 
     def _read_label_file(self, file_name):
-        fpath = os.path.join(self.root, self.raw_folder, file_name)
-        with open(fpath, mode='rb') as f:
+        file_path = os.path.join(self.root, self.raw_folder, file_name)
+        with open(file_path, mode='rb') as f:
             dimensions = self._parse_header(f)
             assert dimensions == [24300]
             num_samples = dimensions[0]
@@ -325,8 +325,8 @@ class SmallNORB(data.Dataset):
             return torch.LongTensor(labels)
 
     def _read_info_file(self, file_name):
-        fpath = os.path.join(self.root, self.raw_folder, file_name)
-        with open(fpath, mode='rb') as f:
+        file_path = os.path.join(self.root, self.raw_folder, file_name)
+        with open(file_path, mode='rb') as f:
 
             dimensions = self._parse_header(f)
             assert dimensions == [24300, 4]

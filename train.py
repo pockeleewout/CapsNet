@@ -1,11 +1,6 @@
 import os.path as path
-import time
-import torch
-import torch.nn as nn
-import numpy as np
 from torch.autograd import Variable
 
-from constants import *
 from data_loaders import *
 from stats import *
 from tools import *
@@ -17,13 +12,14 @@ print(torch.__version__)
 
 
 def get_alpha(epoch):
-    # WARNING: Does not support alpha value saving when continuning training from a saved model
-    if opts.anneal_alpha == "none":
-        alpha = opts.alpha
-    if opts.anneal_alpha == "1":
-        alpha = opts.alpha * float(np.tanh(epoch / DEFAULT_ANNEAL_TEMPERATURE - np.pi) + 1) / 2
-    if opts.anneal_alpha == "2":
-        alpha = opts.alpha * float(np.tanh(epoch / (2 * DEFAULT_ANNEAL_TEMPERATURE)))
+    # WARNING: Does not support alpha value saving when continuing training from a saved model
+    alpha = None
+    if options.anneal_alpha == "none":
+        alpha = options.alpha
+    if options.anneal_alpha == "1":
+        alpha = options.alpha * float(np.tanh(epoch / DEFAULT_ANNEAL_TEMPERATURE - np.pi) + 1) / 2
+    if options.anneal_alpha == "2":
+        alpha = options.alpha * float(np.tanh(epoch / (2 * DEFAULT_ANNEAL_TEMPERATURE)))
     return alpha
 
 
@@ -39,10 +35,10 @@ def transform_data(data, target, use_gpu, num_classes=10):
     return data, target
 
 
-class GPUParallell(nn.DataParallel):
+class GPUParallel(nn.DataParallel):
 
     def __init__(self, capsnet, device_ids):
-        super(Test, self).__init__(capsnet, device_ids=device_ids)
+        super(GPUParallel, self).__init__(capsnet, device_ids=device_ids)
         self.capsnet = capsnet
         self.num_classes = capsnet.num_classes
 
@@ -54,13 +50,14 @@ class GPUParallell(nn.DataParallel):
 
 
 def get_network(opts):
+    capsnet = None
     if opts.dataset == "mnist":
         capsnet = CapsNet(reconstruction_type=opts.decoder,
                           routing_iterations=opts.routing_iterations,
                           batchnorm=opts.batch_norm,
                           loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
-    if opts.dataset == "small_norb":
+    elif opts.dataset == "small_norb":
         if opts.decoder == "Conv":
             opts.decoder = "Conv32"
         capsnet = CapsNet(reconstruction_type=opts.decoder,
@@ -72,7 +69,7 @@ def get_network(opts):
                           batchnorm=opts.batch_norm,
                           loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
-    if opts.dataset == "cifar10":
+    elif opts.dataset == "cifar10":
         if opts.decoder == "Conv":
             opts.decoder = "Conv32"
         capsnet = CapsNet(reconstruction_type=opts.decoder,
@@ -84,10 +81,20 @@ def get_network(opts):
                           num_primary_capsules=32,
                           loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
+    elif opts.dataset == "trashnet":
+        # TODO: Test
+        if opts.decoder == "Conv":
+            opts.decoder = "Conv32"
+        capsnet = CapsNet(reconstruction_type=opts.decoder,
+                          routing_iterations=opts.routing_iterations,
+                          batchnorm=opts.batchnorm,
+                          loss=opts.loss_type,
+                          leaky_routing=opts.leaky_routing)
+        pass
     if opts.use_gpu:
         capsnet.cuda()
     if opts.gpu_ids:
-        capsnet = GPUParallell(capsnet, opts.gpu_ids)
+        capsnet = GPUParallel(capsnet, opts.gpu_ids)
         print("Training on GPU IDS:", opts.gpu_ids)
     return capsnet
 
@@ -105,10 +112,12 @@ def load_model(opts, capsnet):
 def get_dataset(opts):
     if opts.dataset == 'mnist':
         return load_mnist(opts.batch_size)
-    if opts.dataset == 'small_norb':
-        return load_small_norb(opts.batch_size)
-    if opts.dataset == 'cifar10':
+    elif opts.dataset == 'small_norb':
+        return load_smallnorb(opts.batch_size)
+    elif opts.dataset == 'cifar10':
         return load_cifar10(opts.batch_size)
+    elif opts.dataset == "trashnet":
+        return load_trashnet(opts.batch_size)
     raise ValueError("Dataset not supported:" + opts.dataset)
 
 
@@ -159,7 +168,7 @@ def main(opts):
 
         # Save reconstruction image from testing set
         if opts.save_images:
-            data, target = iter(test_loader).next()
+            data, target = next(iter(test_loader))
             data, _ = transform_data(data, target, opts.use_gpu)
             _, reconstructions, _ = capsnet(data)
             filename = "reconstruction_epoch_{}.png".format(epoch)
@@ -175,5 +184,5 @@ def main(opts):
 
 
 if __name__ == '__main__':
-    opts = create_options()
-    main(opts)
+    options = create_options()
+    main(options)
