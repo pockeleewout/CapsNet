@@ -87,7 +87,7 @@ def get_network(opts):
             opts.decoder = "Conv32"
         capsnet = CapsNet(reconstruction_type=opts.decoder,
                           routing_iterations=opts.routing_iterations,
-                          batchnorm=opts.batchnorm,
+                          batchnorm=opts.batch_norm,
                           loss=opts.loss_type,
                           leaky_routing=opts.leaky_routing)
         pass
