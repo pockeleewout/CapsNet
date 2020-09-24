@@ -89,7 +89,10 @@ def get_network(opts):
                           routing_iterations=opts.routing_iterations,
                           batchnorm=opts.batch_norm,
                           loss=opts.loss_type,
-                          leaky_routing=opts.leaky_routing)
+                          leaky_routing=opts.leaky_routing,
+                          img_channels=3,
+                          imsize=64,
+                          num_classes=6)
         pass
     if opts.use_gpu:
         capsnet.cuda()
