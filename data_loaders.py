@@ -122,7 +122,7 @@ def load_cifar10(batch_size, valid_size=0.1):
 
 def load_trashnet(batch_size, valid_size=0.1):
     transform = transforms.Compose([
-        transforms.Resize((64, 64)),
+        transforms.Resize(32),
         transforms.ToTensor(),
     ])
 
